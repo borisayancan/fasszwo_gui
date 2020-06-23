@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>imagenes/play.png</file>
+        <file>imagenes/rec.png</file>
+        <file>imagenes/stop.png</file>
+        <file>imagenes/zoom_mas.png</file>
+        <file>imagenes/zoom_menos.png</file>
+        <file>imagenes/roi.png</file>
+        <file>imagenes/Magic-512.png</file>
+        <file>imagenes/cut_x.png</file>
+        <file>imagenes/cut_y.png</file>
+    </qresource>
+</RCC>
