@@ -68,7 +68,10 @@ win32 {
 LIBS += -l$${PWD}/camara/lib/x64/ASICamera2
 }
 
+
 unix {
+# /etc/udev/rules.d/99-zwocam.rules
+# SUBSYSTEM=="usb", ATTR{idVendor}=="03c3", ATTR{idProduct}=="290b", MODE="0666"
 LIBS += $${PWD}/camara/lib_linux/libASICamera2.a
 LIBS += -lusb-1.0
 }
