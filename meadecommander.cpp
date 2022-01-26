@@ -2,8 +2,8 @@
 #include <QSerialPort>
 #include <QSerialPortInfo>
 #include <QTimer>
-#include <Windows.h>
 #include <QDebug>
+#include "os_includes.h"
 
 
 MeadeCommander::MeadeCommander(QWidget *parent) :
@@ -76,7 +76,7 @@ void MeadeCommander::on_btnAbrir_clicked()
 void MeadeCommander::slot_detener()
 {
     m_port->write(":Q#");
-    Sleep(50);
+    sleep_ms(50);
     m_busy = false;
     update_ui();
 }

@@ -4,7 +4,7 @@
 #include <QSemaphore>
 #include <QThread>
 #include <QMutex>
-#include "Windows.h"
+#include <os_includes.h>
 
 
 // Variables locales
@@ -127,7 +127,7 @@ void fasspreproc_close()
 {
     m_calc_run=false;
     m_init=false;
-    Sleep(150);
+    sleep_ms(150);
     if(m_img_binned)  free_2d((char*)m_img_binned);
     if(m_img_integra) free_2d((char*)m_img_integra);
     if(m_img_centered)free_2d((char*)m_img_centered);

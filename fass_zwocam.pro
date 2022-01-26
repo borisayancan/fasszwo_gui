@@ -39,6 +39,7 @@ HEADERS += \
     fcut.h \
     fmain.h \
     meadecommander.h \
+    os_includes.h \
     overlay1.h \
     widgets/wcut.h \
     widgets/wimagen.h \
@@ -60,7 +61,15 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 
 INCLUDEPATH += camara/include
+
+win32 {
 LIBS += -l$${PWD}/camara/lib/x64/ASICamera2
+}
+
+unix {
+LIBS += $${PWD}/camara/lib_linux/libASICamera2.a
+LIBS += -lusb-1.0
+}
 
 RESOURCES += \
     rc.qrc

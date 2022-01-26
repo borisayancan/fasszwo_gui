@@ -16,8 +16,9 @@
 #include "camara/zwoasi.h"
 #include "dlgimgprocesada.h"
 #include "dlgaskinfo.h"
-#include <Windows.h>
 #include "fass_file.h"
+#include "os_includes.h"
+
 
 // 400 mt -> 1.8468mm (637px -> 127px)
 
@@ -130,7 +131,7 @@ void FMain::on_btnAbrir_clicked()
             m_cam_selected = select->text();
             on_btnPlay_clicked();
             on_edtGain_valueChanged(edtGain->value());
-            Sleep(250);
+            sleep_ms(250);
             on_btnBlancoAuto_clicked();
             edtExposure->setFocus();
 
@@ -260,6 +261,9 @@ void FMain::slot_timer_100ms()
     char info[256];
     sprintf(info,"FPS:%.1f", m_camara->fps());
     txtFPS->setText(info);
+
+    //extern int mean;
+    //qDebug("mean:%d", mean);
 
     info[0]=0;
     int x, y;

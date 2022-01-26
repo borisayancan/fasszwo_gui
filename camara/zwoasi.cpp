@@ -68,6 +68,7 @@ bool ZwoASI::open(int id, double exposure)
     ASISetControlValue(id,ASI_EXPOSURE,m_camara.exposure*1000, ASI_FALSE);
     m_roi.x0=1;
     m_roi.y0=1;
+    //m_roi.x1=1920;
     m_roi.x1=1096;
     m_roi.y1=1096;
     ASISetROIFormat(id, m_roi.width(), m_roi.heigth(), 1, ASI_IMG_RAW16);
@@ -106,7 +107,8 @@ QStringList ZwoASI::availables()
     for(int i=0; i<ncams; i++)
     {
         if(i>=MAX_CAMS) break;
-        ASIGetCameraProperty(&cam, i);
+        int err = ASIGetCameraProperty(&cam, i);
+        if(err!=0) continue;
         cams[i].existe=true;
         cams[i].open=false;
         cams[i].id=cam.CameraID;
@@ -267,6 +269,7 @@ void ZwoASI::setGain(int val)
     ASISetControlValue(m_camara.id,ASI_GAIN,val, ASI_FALSE);
 }
 
+int mean=0;
 void ZwoASI::run()
 {
     if(!m_camara.open) return;
@@ -291,6 +294,12 @@ void ZwoASI::run()
         ASIGetVideoData(m_camara.id, (unsigned char*)dst,
                         sizeof(ushort)*m_roi.width()*m_roi.heigth(), 1000);
         m_frames++;
+
+        int n=m_roi.width()*m_roi.heigth();
+        int suma=0;
+        for(int i=0; i<n; i++ )
+            suma += dst[i];
+        mean = suma/n;
 
         fasspreproc_mutex(true);
         fasspreproc_push(dst);

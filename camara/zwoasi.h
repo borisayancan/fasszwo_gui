@@ -41,8 +41,8 @@ struct T_CsROI
     int y0;
     int x1;
     int y1;
-    int T_CsROI::width()  { return (this->x1-this->x0+1); }
-    int T_CsROI::heigth() { return (this->y1-this->y0+1); }
+    int width()  { return (this->x1-this->x0+1); }
+    int heigth() { return (this->y1-this->y0+1); }
 };
 
 
