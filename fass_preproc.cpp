@@ -11,7 +11,7 @@
 static bool m_init=false;
 static u16** m_img_binned=NULL;             // Imagen pasada por el binning
 static int** m_img_integra=NULL;            // Imagen integrada para calculo de centro
-static u16** m_img_centered=NULL;           // Imagen centrada de tamaño IM_PROC_SZ
+static u16** m_img_centered=NULL;           // Imagen centrada de tamaño PP_IMGOUT
 static int*  m_img_lineal=NULL;
 static u16*  m_data_raw;
 static int m_cnt_integra=0;                 // Contador de integraciones
@@ -33,7 +33,6 @@ static bool m_calc_run=false;
 static void binning(u16* img_raw);
 static void update_xy_centro();
 static void calcula_img_centrada();
-static int  aux_calcula_bin(u16* d);
 static int  aux_calcula_bin_stdsort(u16* din);
 static void aux_qsort(int *list, int low, int high);
 static int  aux_count_pupil();
@@ -56,9 +55,9 @@ void fasspreproc_init(int bin, double sz_pixel, int raw_w, int raw_h, cb_image_s
 
     // Verifica datos validos
     m_init=false;
-    if(bin<1 || bin>20 ||
-       raw_w<10 || raw_w>2048 ||
-       raw_h<10 || raw_h>2048)
+    if((bin<1   ) || (bin>20    ) ||
+       (raw_w<10) || (raw_w>2048) ||
+       (raw_h<10) || (raw_h>2048) )
         return;
 
     // m_bin_nignora debe ser menor a (m_bin_npix/2)
@@ -79,7 +78,7 @@ void fasspreproc_init(int bin, double sz_pixel, int raw_w, int raw_h, cb_image_s
     m_sz_pixel=sz_pixel;
     m_img_binned=(u16**)alloc_2d(m_width, m_height,sizeof(u16));
     m_img_integra=(int**)alloc_2d(m_width, m_height,sizeof(int));
-    m_img_centered=(u16**)alloc_2d(IM_PROC_SZ, IM_PROC_SZ,sizeof(u16));
+    m_img_centered=(u16**)alloc_2d(PP_IMGOUT, PP_IMGOUT,sizeof(u16));
     m_img_lineal=(int*)malloc(m_width * m_height * sizeof(int));
     m_cnt_pupil=aux_count_pupil();
     m_init=true;
@@ -108,12 +107,6 @@ u16** fasspreproc_push(u16* data_raw)
         m_semaph.release();
     }
     else preproc_lost++;
-
-    // Calcular centro
-    // update_xy_centro();
-
-    // Recentrar
-
     return m_img_binned;
 }
 
@@ -142,7 +135,7 @@ void fasspreproc_close()
 /**************************************************************************************
  *
  *  Privada
- *  Ejecuta bining, descarta pixeles mas y menos significativos
+ *  Ejecuta bining
  *
  * ***********************************************************************************/
 static void binning(u16* img_raw)
@@ -193,42 +186,27 @@ static void update_xy_centro()
     if(++m_cnt_integra<8) return;
 
     // Acumulacion ok, calcular
-    double aux1=0.0, aux2=0.0;
-    int centX[2048], centY[2048];
+    double aux_x1=0.0, aux_y1=0.0, aux_suma=0;
     memcpy(m_img_lineal,&m_img_integra[0][0],sizeof(int)*m_width*m_height);
     std::sort(m_img_lineal, &m_img_lineal[m_width*m_height], std::less<int>());
 
-    int cut = (m_cnt_pupil*2);
-    if(cut>=(m_width*m_height)) cut=m_width*m_height;
-    int ref = m_img_lineal[30000];
-
-    for (int j=0;j<m_width;j++)
+    int ref = m_img_lineal[m_width*m_height - m_cnt_pupil];
+    int ptr=0;
+    for (int y=0;y<m_height;y++)
     {
-        centX[j]=0;
-        for (int i=0;i<m_height;i++) centX[j]=centX[j]+m_img_integra[i][j];
-        centX[j]=int(centX[j]/m_height);
-        if (centX[j]>ref)   centX[j]=1;
-        else                centX[j]=0;
+        for (int x=0;x<m_width;x++)
+        {
+            int v = m_img_integra[y][x];
+            v = (v>=ref);
+            aux_x1 += x*v;
+            aux_y1 += y*v;
+            aux_suma += v;
+            ptr++;
+        }
     }
-    for (int i=0;i<m_width;i++)  {
-        aux1=aux1+double(centX[i]*i);
-        aux2=aux2+double(centX[i]);
-    }
-    m_centro_x=u16(round(aux1/aux2));
 
-    aux1=0.0; aux2=0.0;
-    for (int i=0;i<m_height;i++) {
-        centY[i]=0;
-        for (int j=0;j<m_width;j++) centY[i]=centY[i]+m_img_integra[i][j];
-        centY[i]=int(centY[i]/m_width);
-        if (centY[i]>ref)   centY[i]=1;
-        else                centY[i]=0;
-    }
-    for (int j=0;j<m_height;j++)  {
-        aux1=aux1+centY[j]*j;
-        aux2=aux2+centY[j];
-    }
-    m_centro_y=u16(round(aux1/aux2));
+    m_centro_x=u16(round(aux_x1/aux_suma));
+    m_centro_y=u16(round(aux_y1/aux_suma));
 
     // Reiniciar
     m_cnt_integra=0;    
@@ -236,14 +214,13 @@ static void update_xy_centro()
 }
 
 
-
 static void calcula_img_centrada()
 {
-    memset(&m_img_centered[0][0],0,sizeof(u16)*IM_PROC_SZ*IM_PROC_SZ);
-    int x0 = m_centro_x-(IM_PROC_SZ/2);
-    int y0 = m_centro_y-(IM_PROC_SZ/2);
-    int x1 = m_centro_x+(IM_PROC_SZ/2);
-    int y1 = m_centro_y+(IM_PROC_SZ/2);
+    memset(&m_img_centered[0][0],0,sizeof(u16)*PP_IMGOUT*PP_IMGOUT);
+    int x0 = m_centro_x-(PP_IMGOUT/2);
+    int y0 = m_centro_y-(PP_IMGOUT/2);
+    int x1 = m_centro_x+(PP_IMGOUT/2);
+    int y1 = m_centro_y+(PP_IMGOUT/2);
     if(x0<0) x0=0;
     if(y0<0) y0=0;
     if(x1>=m_width)  x1=m_width -1;
@@ -252,13 +229,13 @@ static void calcula_img_centrada()
     int ydst=0;
     for(int y=y0; y<=y1; y++, ydst++)
     {
-        if(ydst>=IM_PROC_SZ)
+        if(ydst>=PP_IMGOUT)
             break;
 
         int xdst=0;
         for(int x=x0; x<=x1; x++, xdst++)
         {
-            if(xdst>=IM_PROC_SZ)
+            if(xdst>=PP_IMGOUT)
                 break;
             m_img_centered[ydst][xdst] = m_img_binned[y][x];
         }
@@ -266,46 +243,6 @@ static void calcula_img_centrada()
 }
 
 
-/**************************************************************************************
- *
- *  Privada
- *  Calcula el valor para un bin, ejecuta el descarte de mas y menos significativos
- *  cuando corresponde
- *
- * ***********************************************************************************/
-static int aux_calcula_bin(u16* d)
-{
-    int i,j,j1;
-    int a,suma;
-
-    for (j=0;j<m_bin_nignora;j++){
-        j1=m_bin_npix-j-1;
-        for (i=0;i<j1;i++)
-            if (d[i]>d[i+1]){
-                a=d[i+1];
-                d[i+1]=d[i];
-                d[i]=a;
-            }
-    }
-
-    for (j=0;j<m_bin_nignora;j++)
-        for (i=m_bin_npix-1;i>0;i--)
-            if (d[i]<d[i-1]){
-                a=d[i];
-                d[i]=d[i-1];
-                d[i-1]=a;
-            }
-
-    suma=0;
-    int cnt=0;
-    for (j=m_bin_nignora;j<m_bin_npix-m_bin_nignora;j++)
-    {
-      suma+=d[j];
-      cnt++;
-    }
-
-    return(suma/cnt);
-}
 
 void countSort(u16 arr[], int n, int exp)
 {
@@ -394,7 +331,7 @@ static void aux_qsort(int* list, int low, int high)
  *  Calcula el numero de pixeles que forman la pupila
  *
  * ***********************************************************************************/
-static int aux_count_pupil()
+static int aux_count_pupil_deprecated()
 {
     const double F=8.0;
     const double Zc=400.0;
@@ -415,6 +352,15 @@ static int aux_count_pupil()
                 sumapupil++;
         }
     return(sumapupil);
+}
+
+
+static int aux_count_pupil()
+{
+    int rext = PP_PUP_EXTRADIO*0.9/PP_BIN;
+    int rint = PP_PUP_INTRADIO*1.1/PP_BIN;
+    int cnt=M_PI*rext*rext - M_PI*rint*rint;
+    return cnt;
 }
 
 
@@ -461,11 +407,11 @@ void fasspreproc_get_image(u16 *img)
 {
     if(!m_init)
     {
-        memset(img,1,sizeof(u16)*IM_PROC_SZ*IM_PROC_SZ);
+        memset(img,1,sizeof(u16)*PP_IMGOUT*PP_IMGOUT);
         return;
     }
     m_mutex.lock();
-    memcpy(img,&m_img_centered[0][0],sizeof(u16)*IM_PROC_SZ*IM_PROC_SZ);
+    memcpy(img,&m_img_centered[0][0],sizeof(u16)*PP_IMGOUT*PP_IMGOUT);
     m_mutex.unlock();
 }
 

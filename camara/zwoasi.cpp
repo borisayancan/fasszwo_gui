@@ -3,6 +3,7 @@
 #include "fass_file.h"
 #include "fass_preproc.h"
 #include <QFile>
+#include <imgdebug.h>
 
 
 ZwoASI::ZwoASI(QObject *parent) :
@@ -47,13 +48,10 @@ bool ZwoASI::open(int id, double exposure)
 
     int nctrl=0;
     ASIGetNumOfControls(id, &nctrl);
-    qDebug("max_size: [%d %d]", cam_info.MaxWidth, cam_info.MaxHeight);
     for(int i=0; i<nctrl; i++)
     {
         ASI_CONTROL_CAPS caps;
         ASIGetControlCaps(id, i, &caps);
-        qDebug("cap[%d] %s [%s][%d %d]", i, caps.Name, caps.Description,
-               caps.MinValue, caps.MaxValue);
     }
 
     m_camara.existe=true;
@@ -68,9 +66,9 @@ bool ZwoASI::open(int id, double exposure)
     ASISetControlValue(id,ASI_EXPOSURE,m_camara.exposure*1000, ASI_FALSE);
     m_roi.x0=1;
     m_roi.y0=1;
-    //m_roi.x1=1920;
     m_roi.x1=1096;
     m_roi.y1=1096;
+    imgdbg_init(1096,1096);
     ASISetROIFormat(id, m_roi.width(), m_roi.heigth(), 1, ASI_IMG_RAW16);
     ASISetStartPos(id,m_roi.x0,m_roi.y0);
     ASISetCameraMode(id, ASI_MODE_NORMAL);
@@ -118,7 +116,8 @@ QStringList ZwoASI::availables()
         memcpy(cams[i].name, cam.Name, 16);
         cams[i].name[16]=0;
 
-        ret << QString().sprintf("%s [%d]", cams[i].name, cams[i].id);
+        //ret << QString().sprintf("%s [%d]", cams[i].name, cams[i].id);
+        ret << QString("%1 [%2]").arg(cams[i].name).arg(cams[i].id);
     }
 
     return ret;
@@ -133,7 +132,7 @@ void ZwoASI::setExposure(double exp_ms)
 }
 
 
-void ZwoASI::setRoi(const T_CsROI &roi)
+void ZwoASI::setRoi(const T_CsROI &)
 {
 
 }
@@ -207,14 +206,14 @@ void ZwoASI::copy_last(char *d, int negro, float xmul)
 
 void ZwoASI::copy_last_processed(char *d, int negro, float xmul)
 {
-    ushort src[IM_PROC_SZ*IM_PROC_SZ];
+    ushort src[PP_IMGOUT*PP_IMGOUT];
     fasspreproc_get_image(src);
 
     ushort* dst=(ushort*)d;
-    for(int i=0; i<IM_PROC_SZ; i++)
+    for(int i=0; i<PP_IMGOUT; i++)
     {
-        for(int k=0; k<IM_PROC_SZ; k++)
-            dst[i*IM_PROC_SZ+k] = (int(src[i*IM_PROC_SZ+k])-negro) *xmul;
+        for(int k=0; k<PP_IMGOUT; k++)
+            dst[i*PP_IMGOUT+k] = (int(src[i*PP_IMGOUT+k])-negro) *xmul;
     }
 }
 
@@ -238,8 +237,8 @@ int ZwoASI::record_start(const char *filename, const char *comentario)
     int clen = strlen(comentario);
     if(clen>=(sizeof(h.comment)-1)) clen = (sizeof(h.comment)-1);
 
-    h.img_h=IM_PROC_SZ;
-    h.img_w=IM_PROC_SZ;
+    h.img_h=PP_IMGOUT;
+    h.img_w=PP_IMGOUT;
     memcpy(h.comment, comentario, clen);
     h.comment[clen] = 0;
 
@@ -284,7 +283,7 @@ void ZwoASI::run()
     u16* d2 =(u16*)malloc(sizeof(u16)*m_camara.w*m_camara.h);
     int buffer=0;
 
-    fasspreproc_init(CAM_SOFT_BIN,CAM_SZ_PIX,m_roi.width(),m_roi.heigth(), fass_push);
+    fasspreproc_init(PP_BIN,CAM_SZ_PIX,m_roi.width(),m_roi.heigth(), fass_push);
     ASIStartVideoCapture(m_camara.id);
     while(m_run)
     {
@@ -301,6 +300,7 @@ void ZwoASI::run()
             suma += dst[i];
         mean = suma/n;
 
+        imgdbg_overlay(dst);
         fasspreproc_mutex(true);
         fasspreproc_push(dst);
         fasspreproc_mutex(false);

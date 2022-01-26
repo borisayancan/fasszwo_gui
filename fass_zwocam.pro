@@ -22,6 +22,7 @@ SOURCES += \
     fass_file.cpp \
     fass_preproc.cpp \
     fcut.cpp \
+    imgdebug.cpp \
     main.cpp \
     fmain.cpp \
     meadecommander.cpp \
@@ -38,6 +39,7 @@ HEADERS += \
     fass_preproc.h \
     fcut.h \
     fmain.h \
+    imgdebug.h \
     meadecommander.h \
     os_includes.h \
     overlay1.h \

@@ -38,7 +38,9 @@ void WSelector::redraw(QPainter *p)
     p->setBrush(Qt::blue);
     p->drawRect(2,2,100,16);
     if(m_selection==SEL_ROI)        p->drawText(2,2,100,16,Qt::AlignLeft | Qt::AlignVCenter,
-                                                QString().sprintf("ROI: %dx%d", int(rct.width()/m_xZoom), int(rct.height()/m_xZoom)));
+                                                //QString().sprintf("ROI: %dx%d", int(rct.width()/m_xZoom), int(rct.height()/m_xZoom))
+                                                QString("ROI: %1x%2").arg(int(rct.width()/m_xZoom)).arg(int(rct.height()/m_xZoom))
+                                                );
     else if(m_selection==SEL_CUT_X) p->drawText(2,2,100,16,Qt::AlignLeft | Qt::AlignVCenter, "CUT X");
     else if(m_selection==SEL_CUT_Y) p->drawText(2,2,100,16,Qt::AlignLeft | Qt::AlignVCenter, "CUT Y");
 }
@@ -55,7 +57,7 @@ void WSelector::setSelection(T_Selection s)
 }
 
 
-bool WSelector::eventFilter(QObject *o, QEvent *e)
+bool WSelector::eventFilter(QObject *, QEvent *e)
 {
     if(e->type()==QEvent::MouseButtonPress && m_selection!=SEL_CANCEL)
     {

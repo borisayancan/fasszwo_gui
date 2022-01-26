@@ -20,8 +20,9 @@ enum T_CsStatus
 #define CAM_HEIGHT      1096
 #define MAX_CAMS        10
 #define CAM_NAME        64
-#define CAM_SOFT_BIN    5
 #define CAM_SZ_PIX      2.9e-6
+
+
 struct T_ZwoCamara
 {
     bool existe;

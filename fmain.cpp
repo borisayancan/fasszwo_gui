@@ -277,7 +277,7 @@ void FMain::slot_timer_100ms()
     m_fCut->setData(m_widImagen->data(), edtNegro->value(), edtBlanco->value());
     m_camara->copy_last_processed((char*)m_imgProc->m_image->bits(), edtNegro->value(), xwhite);
     m_widImagen->update();
-    m_imgProc->update();
+    m_imgProc->frmImg->update();
 
     m_widImagen->setRecordState(m_camara->record_frame(), m_frames2Rec);
     update_ui();

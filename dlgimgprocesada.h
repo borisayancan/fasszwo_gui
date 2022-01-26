@@ -2,7 +2,7 @@
 #define DLGIMGPROCESADA_H
 #include "ui_dlgimgprocesada.h"
 
-class DlgImgProcesada : public QDialog, private Ui::DlgImgProcesada
+class DlgImgProcesada : public QDialog, public Ui::DlgImgProcesada
 {
     Q_OBJECT
 
@@ -11,7 +11,7 @@ public:
     QImage* m_image;
 
 private:
-    void paintEvent(QPaintEvent*);
+    bool eventFilter(QObject *, QEvent *);
 };
 
 #endif // DLGIMGPROCESADA_H
